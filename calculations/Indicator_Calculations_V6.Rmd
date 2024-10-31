@@ -166,7 +166,7 @@ benthic_cover_subregion_summarized <- benthic_cover_site_summarized %>%
 
 
 
-## Pt. II - Comparing the Results
+### 4. Comparing the Results
 
 The following script provides a way to compare these results to HRI official results. To change subregion, adjust the variable subregion_of_interest.
 
@@ -353,7 +353,7 @@ biomass_density_average_subregion <- biomass_density_average %>%
   summarise(Biomass_Density_Subregion_Avg = mean(Biomass_Density_Site_Avg))
 ```
 
-## Pt. II - Comparing the Results
+### 5 - Comparing the Results
 
 The following script provides a way to compare these results to HRI official results. To change subregion, adjust the variable subregion_of_interest.
 
