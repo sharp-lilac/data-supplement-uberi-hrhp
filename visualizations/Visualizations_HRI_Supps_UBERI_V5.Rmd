@@ -1,0 +1,316 @@
+---
+title: Creation of Boxplots for Healthy Reefs Report Card Supplementals - V5
+subtitle: Prepared by UB-ERI
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 8
+    collapse: no
+    code_folding: hide
+    theme: sandstone
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    df_print: paged
+    code_download: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+```{r start1, message=FALSE, warning=FALSE, results='hide'}
+# Set working directory #
+setwd(dir = "G:\\Desktop\\Visualizations_HRI_Supps_UBERI_V5")
+
+# Load in packages #
+library(tidyverse) # manipulate, tidy data, make plots
+library(ggpubr) # arrange multiple plots
+library(readxl) #read excel files
+library(lubridate) #work with dates
+
+# Set theme #
+gg_theme <- theme(
+  legend.position = "bottom",
+  axis.text.x = element_text(face = "bold", angle = 45, vjust = 1, hjust = 1, size = 20),
+  axis.text.y = element_text(face = "bold", size = 22, hjust = 0),
+  axis.title.x = element_text(size = 24),
+  axis.title.y = element_text(size = 20, margin = margin(0, 30, 0, 0)),
+  legend.text = element_text(size = 20, vjust = 0.5),
+  legend.title = element_text(face = "bold", size = 24, vjust = 0.5),
+  legend.key.height = unit(1.5, "cm"),
+  legend.key.width = unit(1.5, "cm"),
+  legend.background = element_rect(color = "black"),
+  plot.title = element_text(size = 28, hjust = 0.5, face = "bold", margin = margin(0, 0, 30, 0)),
+  plot.subtitle = element_text(size = 22)
+)
+```
+
+
+# Creation of Boxplots
+
+
+This script follows the documentation outlined in the following documents:
+Percent Cover Indicator Calculations: Documentation ([link](https://docs.google.com/document/d/1lV0iiV39dHzlrbfm6SPQkZ2vGhDAud8T8uuxWaVE9E8/edit)), and Fish Biomass Indicator Calculations: Documentation ([link](https://docs.google.com/document/d/17I6XgVwByQbwM-08bCrHjQ8NEBqG97b1DWEQqzA94a4/edit)) to create transect-level observations of benthic cover and fish biomass. 
+
+
+## 1 - Prepare the Data
+
+The product of this step should be two dataframes: (1) df_benthic with Site, Subregion, Year, Coral, and Algae (where Coral and Algae represent the % coral and macroalgae cover by transect), and (2) df_fish with Site, Subregion, Year, Herb, and Comm (where Herb and Comm represent the fish biomass density by transect).
+
+```{r data, message=FALSE, warning=FALSE, results='hide'}
+# Prepare data #
+
+#This code chunk shows how to generate the two dataframes using a reference sheet of site names and 2021 and 2023 benthci and fish data products. However, any input data may be used as long as it produces the stated dataframes. 
+
+
+# Set theme #
+gg_theme <- theme(
+  legend.position = "bottom",
+  axis.text.x = element_text(face = "bold", angle = 45, vjust = 1, hjust = 1, size = 20),
+  axis.text.y = element_text(face = "bold", size = 22, hjust = 0),
+  axis.title.x = element_text(size = 24),
+  axis.title.y = element_text(size = 20, margin = margin(0, 30, 0, 0)),
+  legend.text = element_text(size = 20, vjust = 0.5),
+  legend.title = element_text(face = "bold", size = 24, vjust = 0.5),
+  legend.key.height = unit(1.5, "cm"),
+  legend.key.width = unit(1.5, "cm"),
+  legend.background = element_rect(color = "black"),
+  plot.title = element_text(size = 28, hjust = 0.5, face = "bold", margin = margin(0, 0, 30, 0)),
+  plot.subtitle = element_text(size = 22)
+)
+
+Benthic_data_combined <- read_csv("Benthic data combined final V3 after launch.csv")
+Fish_data_combined<- read_csv("Fish data combined final V3 after launch.csv")
+
+
+##Benthic
+
+
+df_benthic =  Benthic_data_combined %>%
+  mutate(Subregion = ifelse(Subregion == "Turneffe Atoll", "Turneffe", Subregion),
+         Subregion = ifelse(Subregion == "Lighthouse reef", "Lighthouse Reef", Subregion),
+         Subregion = ifelse(Subregion == "Glover's Reef Atoll", "Glover's Reef", Subregion))
+
+#expresed in percentage
+df_benthic$Coral<-df_benthic$Coral*100
+df_benthic$Algae<-df_benthic$Algae*100
+
+
+df_benthic$Site<-df_benthic$SiteCode_corrected
+
+df_benthic$Year<-as.factor(df_benthic$Year)
+
+
+###Fish
+df_fish = Fish_data_combined%>%
+  mutate(Subregion = ifelse(Subregion == "Turneffe Atoll", "Turneffe", Subregion),
+         Subregion = ifelse(Subregion == "Lighthouse reef", "Lighthouse Reef", Subregion),
+         Subregion = ifelse(Subregion == "Gloverâ€™s Reef Atoll", "Glover's Reef", Subregion))
+
+df_fish$Site<-df_fish$SiteCode_2021_corrected
+
+df_fish$Year<-as.factor(df_fish$Year)
+
+
+```
+
+## 2 - Create Plots
+
+
+```{r prep_plots, message=FALSE, warning=FALSE, results='hide'}
+
+# Prepare to create plots #
+
+# Create list of subregions
+subregions <- unique(df_benthic$Subregion)
+subregions <- subregions[!is.na(subregions)]
+
+df_benthic %>%
+  group_by(Site, Subregion) %>%
+  summarize(Count = n(),
+            Years = length(unique(Year))) %>%
+  filter(Count / Years != 6 & Count / Years != 12) %>%
+  arrange(Subregion)
+
+# Create empty lists for use in the loops
+coral_list <- list()
+algae_list <- list()
+comm_fish_list <- list()
+herb_fish_list <- list()
+combined_list <- list()
+
+# calculate annual means for each indicator
+yearly_means_benthic <- df_benthic %>%
+  group_by(Year, Subregion, SiteCode_corrected) %>%
+  summarize(
+    mean_coral = mean(Coral, na.rm = TRUE),
+    mean_algae = mean(Algae, na.rm = TRUE)
+  ) %>%
+  group_by(Year, Subregion) %>%
+  summarize(
+    mean_coral = mean(mean_coral, na.rm = TRUE),
+    mean_algae = mean(mean_algae, na.rm = TRUE)
+  )
+yearly_means_fish <- df_fish %>%
+  group_by(Year, Subregion, SiteCode_2021_corrected) %>%
+    summarize(
+    mean_comm = mean(Comm, na.rm = TRUE),
+    mean_herb = mean(Herb, na.rm = TRUE)
+  ) %>%
+  group_by(Year, Subregion) %>%
+  summarize(
+    mean_comm = mean(mean_comm, na.rm = TRUE),
+    mean_herb = mean(mean_herb, na.rm = TRUE)
+  )
+
+```
+
+
+```{r create_plots}
+# Create plots for indicators for all subregions #
+
+#Run for loop to generate plots
+for (subregion in subregions) {
+  # filter to correct subregion
+  data_subregion <- filter(df_benthic, Subregion == subregion)
+  yearly_means_benthic_subregion <- filter(yearly_means_benthic, Subregion == subregion)
+  yearly_means_fish_subregion <- filter(yearly_means_fish, Subregion == subregion)
+  unique_years <- sort(unique(data_subregion$Year))
+
+  # generate mean coral text for subregion
+  mean_values_text <- paste(sapply(unique_years, function(year) {
+    mean_value <- round(filter(yearly_means_benthic_subregion, Year == year)$mean_coral, 1)
+    paste(year, "Mean:", mean_value)
+  }), collapse = " | ")
+
+  # Coral plots
+  coral_plot <- ggplot(data_subregion, aes(x = Site, y = Coral)) +
+    geom_boxplot(outlier.shape = 4, outlier.size = 10, aes(fill = Year)) +
+    geom_point(position = position_dodge(width = 0.75), size = 2, aes(group = Year)) +
+    stat_summary(
+      fun = mean, geom = "point", shape = 18, size = 6, color = "darkorange",
+      aes(group = Year), position = position_dodge(width = 0.75)
+    ) +
+    theme_classic() +
+    gg_theme +
+    theme(legend.position = "none") +
+    labs(
+      x = "", y = "Percent Coral Cover",
+      title = paste(subregion, "Indicator Values"),
+      subtitle = mean_values_text
+    ) + # Add the dynamic subtitle here
+    scale_fill_manual(values = c("lightblue", "#C6EDC3"))
+
+  coral_list[[subregion]] <- coral_plot
+
+  # mean algae text for subregion
+  mean_values_text <- paste(sapply(unique_years, function(year) {
+    mean_value <- round(filter(yearly_means_benthic_subregion, Year == year)$mean_algae, 1)
+    paste(year, "Mean:", mean_value)
+  }), collapse = " | ")
+
+  # Algae plots
+  algae_plot <- ggplot(data_subregion, aes(x = Site, y = Algae)) +
+    geom_boxplot(outlier.shape = 4, outlier.size = 10, aes(fill = Year)) +
+    geom_point(position = position_dodge(width = 0.75), size = 2, aes(group = Year)) +
+    stat_summary(
+      fun = mean, geom = "point", shape = 18, size = 6, color = "darkorange",
+      aes(group = Year), position = position_dodge(width = 0.75)
+    ) +
+    theme_classic() +
+    gg_theme +
+    theme(legend.position = "none") +
+    labs(x = "", y = "Percent Algae Cover", subtitle = mean_values_text) +
+    scale_fill_manual(values = c("lightblue", "#C6EDC3"))
+
+  algae_list[[subregion]] <- algae_plot
+
+  data_subregion <- filter(df_fish, Subregion == subregion)
+
+
+  # mean herbivorous fish text for subregion
+  mean_values_text <- paste(sapply(unique_years, function(year) {
+    mean_value <- round(filter(yearly_means_fish_subregion, Year == year)$mean_herb, 1)
+    paste(year, "Mean:", mean_value)
+  }), collapse = " | ")
+
+  # Herbivorous fish plots
+  herb_fish_plot <- ggplot(data_subregion, aes(x = Site, y = Herb)) +
+    geom_boxplot(outlier.shape = 4, outlier.size = 10, aes(fill = Year)) +
+    geom_point(position = position_dodge(width = 0.75), size = 2, aes(group = Year)) +
+    stat_summary(
+      fun = mean, geom = "point", shape = 18, size = 6, color = "darkorange",
+      aes(group = Year), position = position_dodge(width = 0.75)
+    ) +
+    theme_classic() +
+    gg_theme +
+    theme(legend.position = "none") +
+    labs(x = "Site", y = "Herbivorous Fish (g/100m2)", subtitle = mean_values_text) +
+    scale_fill_manual(values = c("lightblue", "#C6EDC3"))
+
+  herb_fish_list[[subregion]] <- herb_fish_plot
+
+
+  # generate mean commercial fish text for subregion
+  mean_values_text <- paste(sapply(unique_years, function(year) {
+    mean_value <- round(filter(yearly_means_fish_subregion, Year == year)$mean_comm, 1)
+    paste(year, "Mean:", mean_value)
+  }), collapse = " | ")
+
+  # Commercial fish plots
+  comm_fish_plot <- ggplot(data_subregion, aes(x = Site, y = Comm)) +
+    geom_boxplot(outlier.shape = 4, outlier.size = 10, aes(fill = Year)) +
+    stat_summary(
+      fun = mean, geom = "point", shape = 18, size = 6, color = "darkorange",
+      aes(group = Year), position = position_dodge(width = 0.75)
+    ) +
+    geom_point(position = position_dodge(width = 0.75), size = 2, aes(group = Year)) +
+    theme_classic() +
+    gg_theme +
+    labs(x = "", y = "Commercial Fish (g/100m2)", subtitle = mean_values_text) +
+    scale_fill_manual(values = c("lightblue", "#C6EDC3"))
+
+  comm_fish_list[[subregion]] <- comm_fish_plot
+}
+
+#Combine plots for each subregion and save to working directory
+for (subregion in subregions) {
+  combined_plot <- ggarrange(coral_list[[subregion]],
+    algae_list[[subregion]],
+    herb_fish_list[[subregion]],
+    comm_fish_list[[subregion]],
+    ncol = 1, nrow = 4,
+    labels = LETTERS[1:4]
+  )
+  
+  combined_list[[subregion]] <- combined_plot
+
+  file_name <- paste0("plot_", subregion, ".png")
+  ggsave(file_name, combined_plot, width = 22, height = 26, dpi = 600)
+}
+```
+
+
+
+```{r display_plots, message=FALSE, warning=FALSE, results='hide', fig.height=26, fig.width=22}
+# Display plots for the markdown file #
+
+for (i in seq_along(combined_list)) {
+  print(combined_list[[i]])
+}
+
+```
+
+
+
+
+
+
+
+
+
