@@ -1,5 +1,5 @@
 ---
-title: Creation of Boxplots for Healthy Reefs Report Card Supplementals - V5
+title: Creation of Boxplots for Healthy Reefs Report Card Supplementals - V6
 subtitle: Prepared by UB-ERI
 output:
   html_document:
@@ -24,14 +24,11 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 
 ```{r start1, message=FALSE, warning=FALSE, results='hide'}
-# Set working directory #
-setwd(dir = "G:\\Desktop\\Visualizations_HRI_Supps_UBERI_V5")
-
 # Load in packages #
 library(tidyverse) # manipulate, tidy data, make plots
 library(ggpubr) # arrange multiple plots
-library(readxl) #read excel files
-library(lubridate) #work with dates
+library(readxl) # read excel files
+library(lubridate) # work with dates
 
 # Set theme #
 gg_theme <- theme(
@@ -54,19 +51,10 @@ gg_theme <- theme(
 # Creation of Boxplots
 
 
-This script follows the documentation outlined in the following documents:
-Percent Cover Indicator Calculations: Documentation ([link](https://docs.google.com/document/d/1lV0iiV39dHzlrbfm6SPQkZ2vGhDAud8T8uuxWaVE9E8/edit)), and Fish Biomass Indicator Calculations: Documentation ([link](https://docs.google.com/document/d/17I6XgVwByQbwM-08bCrHjQ8NEBqG97b1DWEQqzA94a4/edit)) to create transect-level observations of benthic cover and fish biomass. 
-
-
 ## 1 - Prepare the Data
-
-The product of this step should be two dataframes: (1) df_benthic with Site, Subregion, Year, Coral, and Algae (where Coral and Algae represent the % coral and macroalgae cover by transect), and (2) df_fish with Site, Subregion, Year, Herb, and Comm (where Herb and Comm represent the fish biomass density by transect).
 
 ```{r data, message=FALSE, warning=FALSE, results='hide'}
 # Prepare data #
-
-#This code chunk shows how to generate the two dataframes using a reference sheet of site names and 2021 and 2023 benthci and fish data products. However, any input data may be used as long as it produces the stated dataframes. 
-
 
 # Set theme #
 gg_theme <- theme(
@@ -85,45 +73,44 @@ gg_theme <- theme(
 )
 
 Benthic_data_combined <- read_csv("Benthic data combined final V3 after launch.csv")
-Fish_data_combined<- read_csv("Fish data combined final V3 after launch.csv")
+Fish_data_combined <- read_csv("Fish data combined final V3 after launch.csv")
 
 
-##Benthic
+## Benthic
+
+df_benthic <- Benthic_data_combined %>%
+  mutate(
+    Subregion = ifelse(Subregion == "Turneffe Atoll", "Turneffe", Subregion),
+    Subregion = ifelse(Subregion == "Lighthouse reef", "Lighthouse Reef", Subregion),
+    Subregion = ifelse(Subregion == "Glover's Reef Atoll", "Glover's Reef", Subregion)
+  )
+
+# expressed in percentage
+df_benthic$Coral <- df_benthic$Coral * 100
+df_benthic$Algae <- df_benthic$Algae * 100
 
 
-df_benthic =  Benthic_data_combined %>%
-  mutate(Subregion = ifelse(Subregion == "Turneffe Atoll", "Turneffe", Subregion),
-         Subregion = ifelse(Subregion == "Lighthouse reef", "Lighthouse Reef", Subregion),
-         Subregion = ifelse(Subregion == "Glover's Reef Atoll", "Glover's Reef", Subregion))
-
-#expresed in percentage
-df_benthic$Coral<-df_benthic$Coral*100
-df_benthic$Algae<-df_benthic$Algae*100
+df_benthic$Site <- df_benthic$SiteCode_corrected
+df_benthic$Year <- as.factor(df_benthic$Year)
 
 
-df_benthic$Site<-df_benthic$SiteCode_corrected
+### Fish
+df_fish <- Fish_data_combined %>%
+  mutate(
+    Subregion = ifelse(Subregion == "Turneffe Atoll", "Turneffe", Subregion),
+    Subregion = ifelse(Subregion == "Lighthouse reef", "Lighthouse Reef", Subregion),
+    Subregion = ifelse(Subregion == "Gloverâ€™s Reef Atoll", "Glover's Reef", Subregion)
+  )
 
-df_benthic$Year<-as.factor(df_benthic$Year)
+df_fish$Site <- df_fish$SiteCode_2021_corrected
 
-
-###Fish
-df_fish = Fish_data_combined%>%
-  mutate(Subregion = ifelse(Subregion == "Turneffe Atoll", "Turneffe", Subregion),
-         Subregion = ifelse(Subregion == "Lighthouse reef", "Lighthouse Reef", Subregion),
-         Subregion = ifelse(Subregion == "Gloverâ€™s Reef Atoll", "Glover's Reef", Subregion))
-
-df_fish$Site<-df_fish$SiteCode_2021_corrected
-
-df_fish$Year<-as.factor(df_fish$Year)
-
-
+df_fish$Year <- as.factor(df_fish$Year)
 ```
 
 ## 2 - Create Plots
 
 
 ```{r prep_plots, message=FALSE, warning=FALSE, results='hide'}
-
 # Prepare to create plots #
 
 # Create list of subregions
@@ -132,8 +119,10 @@ subregions <- subregions[!is.na(subregions)]
 
 df_benthic %>%
   group_by(Site, Subregion) %>%
-  summarize(Count = n(),
-            Years = length(unique(Year))) %>%
+  summarize(
+    Count = n(),
+    Years = length(unique(Year))
+  ) %>%
   filter(Count / Years != 6 & Count / Years != 12) %>%
   arrange(Subregion)
 
@@ -158,7 +147,7 @@ yearly_means_benthic <- df_benthic %>%
   )
 yearly_means_fish <- df_fish %>%
   group_by(Year, Subregion, SiteCode_2021_corrected) %>%
-    summarize(
+  summarize(
     mean_comm = mean(Comm, na.rm = TRUE),
     mean_herb = mean(Herb, na.rm = TRUE)
   ) %>%
@@ -167,14 +156,13 @@ yearly_means_fish <- df_fish %>%
     mean_comm = mean(mean_comm, na.rm = TRUE),
     mean_herb = mean(mean_herb, na.rm = TRUE)
   )
-
 ```
 
 
 ```{r create_plots}
 # Create plots for indicators for all subregions #
 
-#Run for loop to generate plots
+# Run for loop to generate plots
 for (subregion in subregions) {
   # filter to correct subregion
   data_subregion <- filter(df_benthic, Subregion == subregion)
@@ -278,7 +266,7 @@ for (subregion in subregions) {
   comm_fish_list[[subregion]] <- comm_fish_plot
 }
 
-#Combine plots for each subregion and save to working directory
+# Combine plots for each subregion and save to working directory
 for (subregion in subregions) {
   combined_plot <- ggarrange(coral_list[[subregion]],
     algae_list[[subregion]],
@@ -287,7 +275,7 @@ for (subregion in subregions) {
     ncol = 1, nrow = 4,
     labels = LETTERS[1:4]
   )
-  
+
   combined_list[[subregion]] <- combined_plot
 
   file_name <- paste0("plot_", subregion, ".png")
@@ -303,7 +291,6 @@ for (subregion in subregions) {
 for (i in seq_along(combined_list)) {
   print(combined_list[[i]])
 }
-
 ```
 
 
